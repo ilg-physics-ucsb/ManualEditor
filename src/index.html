@@ -2,11 +2,15 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>Editor</title>
+    <link rel="stylesheet" href="../node_modules/simplemde/dist/simplemde.min.css">
     <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css">
+    <link rel="stylesheet" href="pandoc.css">
   </head>
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
+    <script>require('./renderer.js')</script>
+    <textarea id="markdown-editor" ></textarea>
+
   </body>
 </html>

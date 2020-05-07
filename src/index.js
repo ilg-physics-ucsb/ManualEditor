@@ -1,5 +1,7 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
+const { app, BrowserWindow } = require('electron')
+const path = require('path')
+const homedir = require("os").homedir()
+const settings = require("electron-settings")
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -7,10 +9,24 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 }
 
 const createWindow = () => {
+  if (!settings.has("filePath")) {
+    settings.set("filePath.lastDir", homedir)
+  }
+  if (!settings.has("unsaved")) {
+    settings.set("saved", false)
+  }
+
+  if (!settings.has("defaultCSS")) {
+    settings.set("defaultCSS.set", false)
+  }
+  console.log(process.platform)
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
 
   // and load the index.html of the app.
