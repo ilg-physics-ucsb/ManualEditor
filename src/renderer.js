@@ -154,7 +154,7 @@ function newFile(editor) {
             // let fileName = path.basename(dir)+".md"
             //Clear Editor if initialized for the first time
             // save(editor, path.join(dir, fileName))
-            let filetPath = save(dir)
+            let filePath = save(dir)
             let fileName = path.basename(filePath)
             settings.set("filePath.lastFile", fileName)
             editor.value("")
@@ -321,6 +321,7 @@ function initializeProject(filePath) {
         katexFiles.forEach(katexFile => {
             fs.copySync(path.join(katexDir, katexFile), path.join(dir, "css", katexFile))
         })
+
         //Change saved setting to false since this is a new file
         settings.set("saved", false)
         settings.set("filePath.lastDir", dir)
