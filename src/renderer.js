@@ -151,11 +151,11 @@ function newFile(editor) {
         let firstInitializeation = initializeProject(dir)
         if ( firstInitializeation ){
 
-            // let fileName = path.basename(dir)+".md"
+            let fileName = path.basename(dir)+".md"
             //Clear Editor if initialized for the first time
-            // save(editor, path.join(dir, fileName))
-            let filePath = save(dir)
-            let fileName = path.basename(filePath)
+            shortSave(editor, path.join(dir, fileName))
+            // let filePath = save(dir)
+            // let fileName = path.basename(filePath)
             settings.set("filePath.lastFile", fileName)
             editor.value("")
         } else {
@@ -323,7 +323,7 @@ function initializeProject(filePath) {
         })
 
         //Change saved setting to false since this is a new file
-        settings.set("saved", false)
+        // settings.set("saved", false)
         settings.set("filePath.lastDir", dir)
         settings.set("project.init", true)
         settings.set("project.dir", dir)
@@ -539,10 +539,10 @@ window.addEventListener('DOMContentLoaded', function(event) {
     let textArea = document.getElementById("markdown-editor")
     simplemde = new simpleMDE({
         element: textArea,
-        autosave: {
-            enabled: true,
-            uniqueId: "UCSBPhysics_"
-        },
+        // autosave: {
+        //     enabled: true,
+        //     uniqueId: "UCSBPhysics_"
+        // },
         previewRender: makeHtml,
         showIcons: [
             "bold", "italic", 'strikethrough',
