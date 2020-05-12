@@ -3,14 +3,26 @@
   <head>
     <meta charset="UTF-8">
     <title>Editor</title>
-    <link rel="stylesheet" href="../node_modules/simplemde/dist/simplemde.min.css">
+    <!-- <link rel="stylesheet" href="../node_modules/simplemde/dist/simplemde.min.css"> -->
+    <link rel="stylesheet" href="../node_modules/easymde/dist/easymde.min.css">
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css">
-    <link rel="stylesheet" href="pandoc.css">
+    <!-- <link id="defaultCSS" rel="stylesheet" href="pandoc.css"> -->
   </head>
   <body>
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.css" integrity="sha384-bsHo4/LA+lkZv61JspMDQB9QP1TtO4IgOf2yYS+J6VdAYLVyx1c3XKcsHh0Vy8Ws" crossorigin="anonymous"> -->
+    <link id="defaultCSS" rel="stylesheet" href="">
     <script>require('./renderer.js')</script>
-    <textarea id="markdown-editor" ></textarea>
+    <!-- <script>
+      const ElectronTitlebarWindows = require('electron-titlebar-windows');
+      var titlebar = new ElectronTitlebarWindows({
+        color: "#0B7A75",
+        backgroundColor: "#012622"
+      });
+      titlebar.appendTo()
+    </script> -->
+    <textarea id="markdown-editor"></textarea>
 
   </body>
-</html>
+
+  </html>

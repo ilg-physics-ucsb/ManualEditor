@@ -21,7 +21,6 @@ function attacher(options) {
     function transformer(tree, file) {
         visit(tree, (node) => is(node, "div"), visitor)
         // console.log(tree)
-
         function visitor(node, ancestors) {
             // if (node.properties.className.findIndex(classname => classname === "Exercise") == -1){
             //     return

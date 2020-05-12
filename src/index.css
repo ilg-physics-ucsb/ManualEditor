@@ -1,6 +1,29 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+  /* margin: auto; */
+  /* max-width: 38rem; */
+  padding: 0;
+  height: 100%;
+}
+
+iframe.previewer {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.CodeMirror.cm-s-easymde.CodeMirror-wrap {
+  height: 85vh;
+  background-color: #2f4f4f;
+  color: honeydew;
+}
+
+.cm-s-easymde .CodeMirror-cursor{border-color:#ccc}
+
+.editor-toolbar {
+  background: slategray;
+}
+
+.editor-toolbar.fullscreen {
+  background: slategray;
 }

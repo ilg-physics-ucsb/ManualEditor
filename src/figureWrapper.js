@@ -18,7 +18,7 @@ function attacher(options){
     trackerList.forEach(tracker => {
         counters[tracker] = 1
         //Create a list of classnames that we will search the DOM for
-        classNames.push("Figure#"+tracker)
+        classNames.push("Figure:"+tracker)
     })
     return transformer
 
@@ -33,7 +33,7 @@ function attacher(options){
             node.tagName = "figure"
             //Get what type of figure it is i.e. Figure#Table, Figure#Simulation, etc.
             let figureType = node.properties.className.filter(cname => classNames.includes(cname))[0]
-            figureType = figureType.split("#")[1]
+            figureType = figureType.split(":")[1]
             node.properties.className = figureType
             let caption = {
                 type: 'text',

@@ -1,12 +1,20 @@
-let simpleMDE = require('simplemde')
+let simpleMDE = require('easymde')
+
+const app = require('electron').remote.app
 
 let regeneratorRuntime = require('regenerator-runtime')
+// let navigator = require("navigator")
+
 
 const { dialog } = require('electron').remote
 const settings = require('electron').remote.require('electron-settings')
 
 const path = require('path')
-const fs = require('fs')
+const fs = require('fs-extra')
+const cssProcessor = require('./cssProcess')
+
+// modules.exports.saveAs = saveAs
+// modules.exports.editor = simplemde
 
 let unified = require('unified')
 let markdown = require('remark-parse')
@@ -23,6 +31,8 @@ let firgureWrapper = require("./figureWrapper")
 let mathJax = require('rehype-mathjax')
 let report = require('vfile-reporter')
 let remarkIframe = require('remark-iframes')
+let iframeWrapper = require("./iframeWrapper")
+let styleSheetAdder = require("./stylesheetAdder")
 
 var processor = makeProcessor()
 
@@ -62,18 +72,29 @@ function makeProcessor() {
         })
         .use(remark2rehype)
         .use(manualEnv, {trackerList: ["Exercise", "Question"]})
-        .use(firgureWrapper, {trackerList: ["Table", "Figure", "Simulation"]})
-        .use(makeAbsolute, {rootDir: settings.get("filePath.lastDir")})
+        .use(firgureWrapper, {trackerList: ["Table", "Figure", "Simulation", "Video", "Equation"]})
+        .use(makeAbsolute, {rootDir: settings.get("project.dir")})
         .use(katex)
+        .use(doc)
+        .use(styleSheetAdder, {rootDir: settings.get("project.dir"), relative:false})
         .use(html);
     return processor
 }
 
 
 function makeHtml(text) {
-    manualEnv.reset()
-    firgureWrapper.reset()
-    return processor.processSync(text);
+    if (settings.has("project.dir") && settings.has("filePath")) {
+        manualEnv.reset()
+        firgureWrapper.reset()
+        let html = processor.processSync(text);
+        // html = String(html)
+        // html = html.replace(/["]/g, '&#34;')
+        // html = html.replace(/[']/g, "&#39;")
+        // let iframe = '<iframe class="previewer" scrolling="no" srcdoc="' + html + '"></iframe>'
+        return html
+    } else {
+        return ""
+    }
 }
 
 function saveAs(editor) {
@@ -93,19 +114,22 @@ function saveAs(editor) {
 
     if (filePath) {
         shortSave(editor, filePath)
+        return filePath
     }
 }
 
 function save(editor) {
+    let filePath
     if (settings.get("saved")) {
-        let filePath = path.join(settings.get("filePath.lastDir"), settings.get("filePath.lastFile"))
+        filePath = path.join(settings.get("filePath.lastDir"), settings.get("filePath.lastFile"))
         shortSave(editor, filePath)
         settings.set("filePath.lastFile", path.basename(filePath))
         settings.set("filePath.lastDir", path.dirname(filePath))
         processor = makeProcessor()
     } else {
-        saveAs(editor)
-    }   
+        filePath = saveAs(editor)
+    }
+    return filePath
 }
 
 function shortSave(editor, filePath) {
@@ -123,78 +147,33 @@ function newFile(editor) {
     })
     if (dir) {
         dir = dir[0]
+        console.log(dir)
+        let firstInitializeation = initializeProject(dir)
+        if ( firstInitializeation ){
 
-        fs.access(path.join(dir, ".init"), fs.F_OK, (err) => {
-            if (err) {
-                //Folder has not been initialized with .init
-                fs.mkdirSync(path.join(dir, "css"))
-                fs.mkdirSync(path.join(dir, "imgs"))
-                //Touch file creates .init
-                fs.closeSync(fs.openSync(path.join(dir, ".init"), "w"))
-
-                //Save Default File to css folder if they have a default set
-                if (settings.get("defaultCSS.set")) {
-                    fs.writeFileSync(path.join(dir, "css", settings.get("defaultCSS.name")), settings.get("defaulCSS.file"), "utf8")
-                //If there is no default set see if they want to make one
-                } else {
-                    let createDefault = dialog.showMessageBoxSync({
-                        title: "Create Default CSS?",
-                        type: "question",
-                        buttons: ["Yes", "No"],
-                        message: "Would you like to set a file as your default CSS file? \r\n \
-                        It will automatically be put into your css folder. "
-                    })
-                    //Create a default if they responded Yes. Ask them for a file. Suggested to be CSS doesn't have to be.
-                    if (createDefault === 0) {
-                        let defaultPath = settings.get("filePaths.lastDir")
-                        let filePaths = dialog.showOpenDialogSync({
-                            title: "Set Default CSS",
-                            defaultPath: defaultPath,
-                            buttonLabel: "Set Default",
-                            filters: [
-                                {name: "CSS", extensions:["css"]},
-                                {name: "All Files", extensions:["*"]}
-                            ],
-                            properties: ["openFile"]
-                        })
-
-                        if (filePaths) {
-                            let filePath = filePaths[0]
-                            let fileName = path.basename(filePath)
-                            let file = fs.readFileSync(filePath, "utf8")
-                            settings.set("defaultCSS.set", true)
-                            settings.set("defaultCSS.name", fileName)
-                            settings.set("defaultCSS.file", file)
-                        }
-                    //If they don't want a CSS file then just put in a basic styles.css
-                    } else {
-                        fs.writeFileSync(path.join(dir, "css", "styles.css"), "")
-                    }
-                }
-                //Clear editor
-                editor.value("")
-                //Change saved setting to false since this is a new file
-                settings.set("saved", false)
-                settings.set("filePath.lastDir", dir)
-                processor = makeProcessor()
-                return
-            }
+            // let fileName = path.basename(dir)+".md"
+            //Clear Editor if initialized for the first time
+            // save(editor, path.join(dir, fileName))
+            let filetPath = save(dir)
+            let fileName = path.basename(filePath)
+            settings.set("filePath.lastFile", fileName)
+            editor.value("")
+        } else {
             dialog.showErrorBox("Lab Already Made", "This folder has been setup for a lab. \r\n Aborting.")
-            return
-        })
+        }
     }
 }
 
 function exportHtml(editor) {
-    let lastDir = settings.get("filePath.lastDir")
+    let lastDir = settings.get("project.dir")
     let fileName = settings.get("filePath.lastFile")
     fileName = path.basename(fileName, path.extname(fileName)) + ".html"
-    let defaultPath = path.join("lastDir", fileName)
+    let defaultPath = path.join(lastDir, fileName)
     let savePath = dialog.showSaveDialogSync({
         title: "Select Save Location",
         defaultPath: defaultPath,
         filters: [
-            {name:"Html", extensions:[".html"]}
+            {name:"Html", extensions:["html"]}
         ],
         properties:["createDirectory"]
     })
@@ -235,10 +214,10 @@ function exportHtml(editor) {
         })
         .use(remark2rehype)
         .use(manualEnv, {trackerList: ["Exercise", "Question"]})
-        .use(firgureWrapper, {trackerList: ["Table", "Figure", "Simulation"]})
-        .use(makeAbsolute, {rootDir: settings.get("filePath.lastDir")})
+        .use(firgureWrapper, {trackerList: ["Table", "Figure", "Simulation", "Video", "Equation"]})
         .use(katex)
         .use(doc)
+        .use(styleSheetAdder, {rootDir: settings.get("project.dir"), relative:true})
         .use(html);
 
         manualEnv.reset()
@@ -248,7 +227,8 @@ function exportHtml(editor) {
     }
 }
 
-function open(editor) {
+
+function openFile(editor) {
     let defaultPath = settings.get("filePath.lastDir")
     let filePaths = dialog.showOpenDialogSync({
         title: "Open Markdown File",
@@ -262,10 +242,146 @@ function open(editor) {
         let filePath = filePaths[0]
         settings.set("filePath.lastFile", path.basename(filePath))
         settings.set("filePath.lastDir", path.dirname(filePath))
+        settings.set("saved", false)
         processor = makeProcessor()
         var file = fs.readFileSync(filePath, "utf8")
         editor.value(file)
     }
+}
+
+
+function openProject(editor) {
+    let defaultPath = settings.get("filePath.lastDir")
+    let filePaths = dialog.showOpenDialogSync({
+        title: "Open Project Folder",
+        defaultPath: defaultPath,
+        properties:['openDirectory', 'createDirectory']
+    })
+    if (filePaths) {
+        let filePath = filePaths[0]
+        let mdFile;
+        let files = fs.readdirSync(filePath)
+        files.forEach(file => {
+            if (path.extname(file) === ".md") {
+                mdFile = file
+                console.log("Set MD File")
+                return
+            }
+        })
+        settings.set("filePath.lastFile", path.basename(mdFile))
+        settings.set("filePath.lastDir", path.dirname(filePath))
+        settings.set("project.dir", filePath)
+        if (! initializeProject(filePath)){
+            settings.set("project.init", true)
+        }
+        processor = makeProcessor()
+        var file = fs.readFileSync(path.join(filePath, mdFile), "utf8")
+        editor.value(file)
+    }
+}
+
+function initializeProject(filePath) {
+    let dir = filePath
+    console.log(path.join(dir, ".init"))
+    console.log(fs.existsSync(path.join(dir, ".init")))
+
+    try {
+        if (fs.existsSync(path.join(dir, ".init"))) {
+          return false
+        } else {
+            //Folder has not been initialized with .init
+        fs.mkdirSync(path.join(dir, "css"))
+        fs.mkdirSync(path.join(dir, "imgs"))
+        //Touch file creates .init
+        fs.closeSync(fs.openSync(path.join(dir, ".init"), "w"))
+
+        //Save Default File to css folder if they have a default set
+        if (settings.get("defaultCSS.set")) {
+            fs.writeFileSync(path.join(dir, "css", settings.get("defaultCSS.name")), settings.get("defaultCSS.file"), "utf8")
+        //If there is no default set see if they want to make one
+        } else {
+            let createDefault = dialog.showMessageBoxSync({
+                title: "Create Default CSS?",
+                type: "question",
+                buttons: ["Yes", "No"],
+                message: "Would you like to set a file as your default CSS file?\r\nIt will automatically be put into your css folder every time you start a new project. "
+            })
+            //Create a default if they responded Yes. Ask them for a file. Suggested to be CSS doesn't have to be.
+            if (createDefault === 0) {
+                let cssFilePath = setDefaultCss(false)
+                writeDefaultCSStoProjectFolder(dir, cssFilePath)
+            //If they don't want a CSS file then just put in a basic styles.css
+            } else {
+                fs.writeFileSync(path.join(dir, "css", "styles.css"), "")
+            }
+        }
+        //Copy Katex
+        let katexDir = path.join(app.getPath("userData"), "katex")
+        let katexFiles = fs.readdirSync(katexDir)
+        katexFiles.forEach(katexFile => {
+            fs.copySync(path.join(katexDir, katexFile), path.join(dir, "css", katexFile))
+        })
+        //Change saved setting to false since this is a new file
+        settings.set("saved", false)
+        settings.set("filePath.lastDir", dir)
+        settings.set("project.init", true)
+        settings.set("project.dir", dir)
+        // cssProcessor(dir)
+        processor = makeProcessor()
+        return true
+        }
+      } catch(err) {
+        console.log(err)
+      }
+}
+
+function initializeProgram(editor) {
+    newFile(simplemde)
+    settings.set("firstOpen", false)
+    app.relaunch()
+    app.exit()
+}
+
+function setDefaultCss(relaunch) {
+    let defaultPath = settings.get("filePaths.lastDir")
+    let filePaths = dialog.showOpenDialogSync({
+        title: "Set Default CSS",
+        defaultPath: defaultPath,
+        buttonLabel: "Set Default",
+        filters: [
+            {name: "CSS", extensions:["css"]},
+            {name: "All Files", extensions:["*"]}
+        ],
+        properties: ["openFile"]
+    })
+
+    if (filePaths) {
+        let filePath = filePaths[0]
+        let fileName = path.basename(filePath)
+        let file = fs.readFileSync(filePath, "utf8")
+        settings.set("defaultCSS.set", true)
+        settings.set("defaultCSS.name", fileName)
+        settings.set("defaultCSS.file", file)
+        fs.copyFileSync(filePath, path.join(app.getPath("userData"), "default.css"))
+        if (relaunch) {
+            app.relaunch()
+            app.exit()
+        }
+        return filePath
+    }
+}
+
+function setDefaultCssOnly() {
+    setDefaultCss(true)
+}
+
+function writeDefaultCSStoProjectFolder(projectFolder, cssFile) {
+    let fileName = path.basename(cssFile)
+    let file = fs.readFileSync(cssFile, "utf8")
+    settings.set("defaultCSS.set", true)
+    settings.set("defaultCSS.name", fileName)
+    settings.set("defaultCSS.file", file)
+    fs.writeFileSync(path.join(projectFolder, "css", fileName), file, "utf8")
 }
 
 var customToolbar = [{
@@ -275,10 +391,16 @@ var customToolbar = [{
         title: "New File"
     },
     {
+        name: "openfile",
+        action: openFile,
+        className: "fa fa-file-text",
+        title: "Open Markdown File"
+    },
+    {
         name: "open",
-        action: open,
+        action: openProject,
         className: "fa fa-folder-open",
-        title: "Open"
+        title: "Open Project"
     },
     {
         name: "save",
@@ -396,6 +518,13 @@ var customToolbar = [{
     },
     "|",
     {
+        name:"defaultCSS",
+        action: setDefaultCssOnly,
+        className: "fa fa-cog",
+        title: "Set Default CSS File"
+    },
+    "|",
+    {
         name: "fullscreen",
         action: simpleMDE.toggleFullScreen,
         className: "fa fa-arrows-alt no-disable no-mobile",
@@ -403,9 +532,11 @@ var customToolbar = [{
     },
 ]
 
+let simplemde; 
+
 window.addEventListener('DOMContentLoaded', function(event) {
     let textArea = document.getElementById("markdown-editor")
-    let simplemde = new simpleMDE({
+    simplemde = new simpleMDE({
         element: textArea,
         autosave: {
             enabled: true,
@@ -419,7 +550,21 @@ window.addEventListener('DOMContentLoaded', function(event) {
             'link', 'image', 'table',
             'horizontal-rule', 'preview', 'side-by-side', 'fullscreen',
         ],
-        toolbar: customToolbar
+        toolbar: customToolbar,
+        previewClass: "editor-preview le-preview",
+        onToggleFullScreen: function(bool) {return}
     });
-    console.log(simpleMDE)
+    simplemde.codemirror.on("change", (changeArray) => {
+        shortSave(simplemde, path.join(settings.get("filePath.lastDir"), settings.get("filePath.lastFile")))
+        simplemde.render()
+    })
+    if (settings.get("firstOpen")) {
+        dialog.showMessageBoxSync({
+            title: "First Time",
+            buttons: ["Ok"],
+            message: "It looks like this it the first time you have opened the app.\r\nLets start a new project.\r\n\r\nSelect or create a folder to start your first project."
+        })
+        initializeProgram(simplemde)
+    }
+
 })
