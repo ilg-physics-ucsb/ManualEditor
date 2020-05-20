@@ -268,8 +268,11 @@ function openProject(editor) {
                 return
             }
         })
+        // console.log(filePath)
+        // console.log(path.dirname(filePath))
+        // console.log(mdFile)
         settings.set("filePath.lastFile", path.basename(mdFile))
-        settings.set("filePath.lastDir", path.dirname(filePath))
+        settings.set("filePath.lastDir", filePath)
         settings.set("project.dir", filePath)
         if (! initializeProject(filePath)){
             settings.set("project.init", true)
@@ -337,7 +340,8 @@ function initializeProject(filePath) {
 }
 
 function initializeProgram(editor) {
-    newFile(simplemde)
+    // newFile(simplemde)
+    setDefaultCssOnly()
     settings.set("firstOpen", false)
     app.relaunch()
     app.exit()
@@ -560,12 +564,19 @@ window.addEventListener('DOMContentLoaded', function(event) {
         simplemde.render()
     })
     if (settings.get("firstOpen")) {
-        dialog.showMessageBoxSync({
-            title: "First Time",
-            buttons: ["Ok"],
-            message: "It looks like this it the first time you have opened the app.\r\nLets start a new project.\r\n\r\nSelect or create a folder to start your first project."
+        let createDefault = dialog.showMessageBoxSync({
+            title: "Create Default CSS?",
+            type: "question",
+            buttons: ["Yes", "No"],
+            message: "Would you like to set a file as your default CSS file?\r\nIt will automatically be put into your css folder every time you start a new project. "
         })
-        initializeProgram(simplemde)
+        //Create a default if they responded Yes. Ask them for a file. Suggested to be CSS doesn't have to be.
+        if (createDefault === 0) {
+            initializeProgram(simplemde)
+        //If they don't want a CSS file then just put in a basic styles.css
+        } else{
+            settings.set("firstOpen", false)
+        }
     }
 
 })
