@@ -84,6 +84,6 @@
     "@electron-forge/maker-squirrel": "^6.0.0-beta.51",
     "@electron-forge/maker-zip": "^6.0.0-beta.51",
     "electron": "8.2.5",
-    "node-sass": "^4.14.1"
+    "node-sass": "^7.0.0"
   }
 }
